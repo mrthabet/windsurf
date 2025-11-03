@@ -1,0 +1,33 @@
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Allure
+allure-results/
+allure-report/
+
+# Logs
+logs/
+*.log
+
+# Node (if any remnants)
+node_modules/
+
+# Misc
+*.tmp
+*.swp
+
+# Local secrets (do not commit real creds)
+src/test/resources/config.properties
