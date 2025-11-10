@@ -32,7 +32,17 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Run UI tests (headless, ${{ matrix.browser }})
-        run: mvn -B -q test -Dheadless=true -Dbrowser=${{ matrix.browser }}
+        env:
+          USERNAME: ${{ secrets.TARH_USERNAME }}
+          PASSWORD: ${{ secrets.TARH_PASSWORD }}
+          OTP: ${{ secrets.TARH_OTP }}
+        run: |
+          mvn -B -q test \
+            -Dheadless=true \
+            -Dbrowser=${{ matrix.browser }} \
+            -Dusername="${USERNAME}" \
+            -Dpassword="${PASSWORD}" \
+            -Dotp="${OTP}"
 
       - name: Upload Allure results
         uses: actions/upload-artifact@v4
