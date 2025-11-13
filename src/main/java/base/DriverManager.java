@@ -48,14 +48,16 @@ public class DriverManager {
                 default:
                     WebDriverManager.chromedriver().setup();
                     ChromeOptions options = new ChromeOptions();
-                    options.addArguments("--start-maximized");
+                    // Always-safe flags for CI servers (Jenkins): headless, no-sandbox, fixed window size
+                    options.addArguments("--headless=new");
+                    options.addArguments("--no-sandbox");
+                    options.addArguments("--window-size=1920,1080");
+                    // Helpful stability flags
                     options.addArguments("--disable-blink-features=AutomationControlled");
                     options.addArguments("--disable-infobars");
                     options.addArguments("--disable-dev-shm-usage");
-                    options.addArguments("--no-sandbox");
                     // Set a common user-agent to reduce bot detection
                     options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-                    if (headless) options.addArguments("--headless=new", "--window-size=1440,900");
 
                     // Exclude the automation switch and disable the automation extension
                     Map<String, Object> prefs = new HashMap<>();
