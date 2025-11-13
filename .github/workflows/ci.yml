@@ -33,14 +33,15 @@ jobs:
 
       - name: Run UI tests (headless, ${{ matrix.browser }})
         env:
-          USERNAME: ${{ secrets.TARH_USERNAME }}
+          EMAIL: ${{ secrets.TARH_USERNAME }}
           PASSWORD: ${{ secrets.TARH_PASSWORD }}
           OTP: ${{ secrets.TARH_OTP }}
         run: |
           mvn -B -q test \
             -Dheadless=true \
             -Dbrowser=${{ matrix.browser }} \
-            -Dusername="${USERNAME}" \
+            -Dbase.url=https://tarh-test.vercel.app \
+            -Demail="${EMAIL}" \
             -Dpassword="${PASSWORD}" \
             -Dotp="${OTP}"
 
