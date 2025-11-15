@@ -78,8 +78,8 @@ public class LoginPage {
         enterEmail(email);
         enterPassword(password);
         submit();
-        // Wait for either success (OTP page /send-otp) or leaving /login, or an error alert appears (30s for CI)
-        new WebDriverWait(driver, Duration.ofSeconds(30)).until(d -> {
+        // Wait for either success (OTP page /send-otp) or leaving /login, or an error alert appears (15s for CI)
+        new WebDriverWait(driver, Duration.ofSeconds(15)).until(d -> {
             String url = driver.getCurrentUrl().toLowerCase();
             boolean onOtpPage = url.contains("/send-otp");
             boolean leftLogin = !url.contains("/login");

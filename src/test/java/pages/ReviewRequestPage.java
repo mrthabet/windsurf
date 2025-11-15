@@ -243,7 +243,7 @@ public class ReviewRequestPage {
     }
 
     public void waitUntilDecisionIsAccepted() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(90));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
         try {
             wait.until(d -> {
                 try {
