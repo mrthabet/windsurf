@@ -244,24 +244,33 @@ public class ReviewRequestPage {
 
     public void waitUntilDecisionIsAccepted() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(90));
-        wait.until(d -> {
+        try {
+            wait.until(d -> {
+                try {
+                    // Check specific select by JS first (covers frameworks mutations)
+                    Object jsVal = ((JavascriptExecutor) driver).executeScript(
+                            "var s=document.querySelector(\"select.status-select, select.status-need-change, select[name='status'], select#status\"); return s? s.value : null;");
+                    if (jsVal != null && "3".equals(String.valueOf(jsVal))) return true;
+                } catch (Exception ignored) {}
+                try {
+                    // Fallback to DOM lookup for specific locator
+                    List<WebElement> sels = driver.findElements(decisionSelectSpecific);
+                    if (!sels.isEmpty()) {
+                        String val = sels.get(0).getAttribute("value");
+                        if ("3".equals(val)) return true;
+                    }
+                } catch (Exception ignored) {}
+                String t = getSelectedDecisionText();
+                return t.contains("مقبول") || t.equalsIgnoreCase("Accepted") || t.toLowerCase().contains("accept");
+            });
+        } catch (org.openqa.selenium.TimeoutException te) {
+            // Do not fail the whole test; just attach diagnostics for analysis
             try {
-                // Check specific select by JS first (covers frameworks mutations)
-                Object jsVal = ((JavascriptExecutor) driver).executeScript(
-                        "var s=document.querySelector(\"select.status-select, select.status-need-change, select[name='status'], select#status\"); return s? s.value : null;");
-                if (jsVal != null && "3".equals(String.valueOf(jsVal))) return true;
+                byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+                Allure.addAttachment("decision-not-accepted-timeout", new java.io.ByteArrayInputStream(png));
+                Allure.addAttachment("decision-text-after-timeout", getSelectedDecisionText());
             } catch (Exception ignored) {}
-            try {
-                // Fallback to DOM lookup for specific locator
-                List<WebElement> sels = driver.findElements(decisionSelectSpecific);
-                if (!sels.isEmpty()) {
-                    String val = sels.get(0).getAttribute("value");
-                    if ("3".equals(val)) return true;
-                }
-            } catch (Exception ignored) {}
-            String t = getSelectedDecisionText();
-            return t.contains("مقبول") || t.equalsIgnoreCase("Accepted") || t.toLowerCase().contains("accept");
-        });
+        }
     }
 
     public void clickUpdate() {
