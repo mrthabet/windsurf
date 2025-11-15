@@ -13,7 +13,7 @@ public class FundingWorkflowTest extends BaseTest {
     @Test
     public void approveFirstFundingRequest() {
         // Login + OTP to Dashboard
-        String email = ConfigReader.get("username");
+        String email = ConfigReader.get("email");
         String password = ConfigReader.get("password");
         String otp = ConfigReader.get("otp");
 

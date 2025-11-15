@@ -16,8 +16,7 @@ pipeline {
   }
 
   environment {
-    // Ensures Chrome runs headless reliably on CI (also enforced in code)
-    _JAVA_OPTIONS = '-Dbase.url=${params.BASE_URL} -Demail=${params.EMAIL} -Dpassword=${params.PASSWORD} -Dotp=${params.OTP}'
+    // Additional environment can be set here if needed
   }
 
   stages {
@@ -30,7 +29,8 @@ pipeline {
     stage('Build & Test') {
       steps {
         script {
-          def mvnCmd = isUnix() ? "mvn -B -q -Dtest=${params.TEST_CLASS} test" : "mvn -B -q -Dtest=${params.TEST_CLASS} test"
+          def commonProps = "-Dtest=${params.TEST_CLASS} -Dbase.url=\"${params.BASE_URL}\" -Demail=\"${params.EMAIL}\" -Dpassword=\"${params.PASSWORD}\" -Dotp=\"${params.OTP}\" -Dbrowser=chrome -Dheadless=true"
+          def mvnCmd = isUnix() ? "mvn -B -q ${commonProps} test" : "mvn -B -q ${commonProps} test"
           if (isUnix()) {
             sh "${mvnCmd}"
           } else {

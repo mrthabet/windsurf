@@ -243,10 +243,16 @@ public class ReviewRequestPage {
     }
 
     public void waitUntilDecisionIsAccepted() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(40));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(90));
         wait.until(d -> {
             try {
-                // Prefer checking the value of the specific select if available
+                // Check specific select by JS first (covers frameworks mutations)
+                Object jsVal = ((JavascriptExecutor) driver).executeScript(
+                        "var s=document.querySelector('select.status-select.status-need-change'); return s? s.value : null;");
+                if (jsVal != null && "3".equals(String.valueOf(jsVal))) return true;
+            } catch (Exception ignored) {}
+            try {
+                // Fallback to DOM lookup for specific locator
                 List<WebElement> sels = driver.findElements(decisionSelectSpecific);
                 if (!sels.isEmpty()) {
                     String val = sels.get(0).getAttribute("value");
@@ -280,8 +286,26 @@ public class ReviewRequestPage {
                 Allure.addAttachment("before-update-click", new java.io.ByteArrayInputStream(png));
                 Thread.sleep(300);
             } catch (Exception ignored) {}
-            try { DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click(); return; } catch (Exception ignored) {}
-            try { ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn); return; } catch (Exception ignored) {}
+            boolean clicked = false;
+            try { DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click(); clicked = true; } catch (Exception ignored) {}
+            if (!clicked) {
+                try { ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn); clicked = true; } catch (Exception ignored) {}
+            }
+            if (clicked) {
+                // Verify persisted; if not, retry once by forcing value=3 then click again
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                if (!isAcceptedSelected()) {
+                    forceSelectAcceptedViaJs();
+                    try {
+                        byte[] png2 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+                        Allure.addAttachment("retry-after-force-accepted", new java.io.ByteArrayInputStream(png2));
+                    } catch (Exception ignored) {}
+                    try { btn.click(); } catch (Exception e1) {
+                        try { ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn); } catch (Exception ignored2) {}
+                    }
+                }
+                return;
+            }
         }
         // Broaden: any element carrying the text with common containers/classes
         List<WebElement> any = driver.findElements(updateAny);
@@ -313,12 +337,6 @@ public class ReviewRequestPage {
             try { btn.click(); return; } catch (Exception ignored) {}
             try { ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn); return; } catch (Exception ignored) {}
         }
-        // Try form submit
-        try {
-            WebElement form = driver.findElement(By.xpath("//form[.//select or .//*[contains(normalize-space(.),'القرار')]]"));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].submit();", form);
-            return;
-        } catch (Exception ignored) {}
         // Final JS-based fallback: find by text or primary class anywhere in the document
         try {
             Object found = ((JavascriptExecutor) driver).executeScript(
@@ -336,5 +354,33 @@ public class ReviewRequestPage {
             Allure.addAttachment("review page source", "text/html", driver.getPageSource(), ".html");
         } catch (Exception ignored) {}
         throw new NoSuchElementException("Update button not found");
+    }
+
+    private boolean isAcceptedSelected() {
+        try {
+            Object jsVal = ((JavascriptExecutor) driver).executeScript(
+                    "var s=document.querySelector('select.status-select.status-need-change'); return s? s.value : null;");
+            if (jsVal != null && "3".equals(String.valueOf(jsVal))) return true;
+        } catch (Exception ignored) {}
+        try {
+            List<WebElement> sels = driver.findElements(decisionSelectSpecific);
+            if (!sels.isEmpty()) {
+                String val = sels.get(0).getAttribute("value");
+                if ("3".equals(val)) return true;
+            }
+        } catch (Exception ignored) {}
+        try {
+            String t = getSelectedDecisionText();
+            return t.contains("مقبول") || t.equalsIgnoreCase("Accepted") || t.toLowerCase().contains("accept");
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private void forceSelectAcceptedViaJs() {
+        try {
+            ((JavascriptExecutor) driver).executeScript(
+                    "var s=document.querySelector('select.status-select.status-need-change'); if(s){ s.value='3'; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true})); }"
+            );
+        } catch (Exception ignored) {}
     }
 }

@@ -3,6 +3,7 @@ package pages;
 import base.DriverManager;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 import java.util.List;
@@ -77,12 +78,13 @@ public class LoginPage {
         enterEmail(email);
         enterPassword(password);
         submit();
-        // Wait for either success (URL no longer contains /login) or error alert appears
-        DriverManager.getWait().until(d -> {
+        // Wait for either success (OTP page /send-otp) or leaving /login, or an error alert appears (30s for CI)
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(d -> {
             String url = driver.getCurrentUrl().toLowerCase();
+            boolean onOtpPage = url.contains("/send-otp");
             boolean leftLogin = !url.contains("/login");
             boolean hasError = !driver.findElements(errorAlert).isEmpty();
-            return leftLogin || hasError;
+            return onOtpPage || leftLogin || hasError;
         });
     }
 
