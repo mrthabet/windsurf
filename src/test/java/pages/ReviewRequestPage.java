@@ -248,7 +248,7 @@ public class ReviewRequestPage {
             try {
                 // Check specific select by JS first (covers frameworks mutations)
                 Object jsVal = ((JavascriptExecutor) driver).executeScript(
-                        "var s=document.querySelector('select.status-select.status-need-change'); return s? s.value : null;");
+                        "var s=document.querySelector('select.status-select, select.status-need-change, select[name=\\"status\\"], select#status'); return s? s.value : null;");
                 if (jsVal != null && "3".equals(String.valueOf(jsVal))) return true;
             } catch (Exception ignored) {}
             try {
@@ -359,7 +359,7 @@ public class ReviewRequestPage {
     private boolean isAcceptedSelected() {
         try {
             Object jsVal = ((JavascriptExecutor) driver).executeScript(
-                    "var s=document.querySelector('select.status-select.status-need-change'); return s? s.value : null;");
+                    "var s=document.querySelector('select.status-select, select.status-need-change, select[name=\\"status\\"], select#status'); return s? s.value : null;");
             if (jsVal != null && "3".equals(String.valueOf(jsVal))) return true;
         } catch (Exception ignored) {}
         try {
@@ -379,7 +379,7 @@ public class ReviewRequestPage {
     private void forceSelectAcceptedViaJs() {
         try {
             ((JavascriptExecutor) driver).executeScript(
-                    "var s=document.querySelector('select.status-select.status-need-change'); if(s){ s.value='3'; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true})); }"
+                    "var s=document.querySelector('select.status-select, select.status-need-change, select[name=\\"status\\"], select#status'); if(s){ s.value='3'; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true})); }"
             );
         } catch (Exception ignored) {}
     }
