@@ -1,6 +1,6 @@
 package pages;
 
-import base.DriverManager;
+import base.BasePage;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -8,8 +8,11 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import java.util.List;
 
-public class LoginPage {
-    private final WebDriver driver;
+/**
+ * Page Object for the Login page.
+ * Handles interactions with the login form and authentication process.
+ */
+public class LoginPage extends BasePage {
 
     // Flexible locators to adapt to common login forms
     private final By emailInputCss = By.cssSelector("input[type='email'], input[name='email'], input[name='username'], input[id*='email' i], input[id*='user' i]");
@@ -18,12 +21,17 @@ public class LoginPage {
     private final By submitButtonTextXpath = By.xpath("//button[normalize-space(.)='Login' or normalize-space(.)='Sign in' or normalize-space(.)='Sign In']");
     private final By errorAlert = By.cssSelector("[role='alert'], .error, .alert-error");
 
-    public LoginPage() {
-        this.driver = DriverManager.getDriver();
+    /**
+     * Constructor that initializes the page with WebDriver instance.
+     *
+     * @param driver The WebDriver instance to use for this page.
+     */
+    public LoginPage(WebDriver driver) {
+        super(driver, 20L);
     }
 
     private WebElement waitForVisible(By locator) {
-        return DriverManager.getWait().until(ExpectedConditions.visibilityOfElementLocated(locator));
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
     }
 
     private WebElement findFirst(By... locators) {
@@ -53,7 +61,7 @@ public class LoginPage {
             WebElement btn = findFirst(submitButtonCss, submitButtonTextXpath);
             if (btn != null && btn.isDisplayed() && btn.isEnabled()) {
                 try {
-                    DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click();
+                    wait.until(ExpectedConditions.elementToBeClickable(btn)).click();
                     return;
                 } catch (TimeoutException | ElementClickInterceptedException ignored) {}
             }
@@ -78,14 +86,19 @@ public class LoginPage {
         enterEmail(email);
         enterPassword(password);
         submit();
-        // Wait for either success (OTP page /send-otp) or leaving /login, or an error alert appears (15s for CI)
-        new WebDriverWait(driver, Duration.ofSeconds(15)).until(d -> {
-            String url = driver.getCurrentUrl().toLowerCase();
-            boolean onOtpPage = url.contains("/send-otp");
-            boolean leftLogin = !url.contains("/login");
-            boolean hasError = !driver.findElements(errorAlert).isEmpty();
-            return onOtpPage || leftLogin || hasError;
-        });
+        // Wait for either success (OTP page /send-otp) or leaving /login, or an error alert appears (10s for CI)
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> {
+                String url = driver.getCurrentUrl().toLowerCase();
+                boolean onOtpPage = url.contains("/send-otp");
+                boolean leftLogin = !url.contains("/login");
+                boolean hasError = !driver.findElements(errorAlert).isEmpty();
+                return onOtpPage || leftLogin || hasError;
+            });
+        } catch (TimeoutException | org.openqa.selenium.remote.UnreachableBrowserException ignored) {
+            // In negative/slow scenarios the browser may die or never leave /login within 10s.
+            // Callers (tests) will still assert on the final URL/error state.
+        }
     }
 
     public void attemptLogin(String email, String password) {
