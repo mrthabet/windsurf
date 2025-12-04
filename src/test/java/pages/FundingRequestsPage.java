@@ -1,6 +1,6 @@
 package pages;
 
-import base.DriverManager;
+import base.BasePage;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -9,8 +9,7 @@ import io.qameta.allure.Allure;
 import java.util.List;
 import java.time.Duration;
 
-public class FundingRequestsPage {
-    private final WebDriver driver;
+public class FundingRequestsPage extends BasePage {
 
     // Common locators
     private final By tableSelector = By.cssSelector("table, [role='table'], .mantine-Table-root, .mantine-DataTable-root");
@@ -23,13 +22,13 @@ public class FundingRequestsPage {
     private final By headingFundRequests = By.xpath("//*[self::h1 or self::h2 or self::h3][contains(normalize-space(.),'طلبات التمويل')]");
     private final By reviewDecisionSelect = By.xpath("//select[contains(@class,'status-select') or contains(@class,'status-need-change') or @name='status' or @id='status']");
 
-    public FundingRequestsPage() {
-        this.driver = DriverManager.getDriver();
+    public FundingRequestsPage(WebDriver driver) {
+        super(driver);
     }
 
     public void openFromSidebar() {
-        new Sidebar().clickMenuByText("طلبات التمويل", "التمويل", "Requests", "Funding");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(60));
+        new Sidebar(driver).clickMenuByText("طلبات التمويل", "التمويل", "Requests", "Funding");
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(40));
         // Wait for navigation to list (both variants)
         wait.until(ExpectedConditions.or(
                 ExpectedConditions.urlContains("/dashboard/fund-requests"),
@@ -45,9 +44,9 @@ public class FundingRequestsPage {
                 ((JavascriptExecutor) driver).executeScript("arguments[0].scrollTop = 0;", vp);
             }
             // Explicit visible scroll down then up
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 3; i++) {
                 ((JavascriptExecutor) driver).executeScript("window.scrollBy(0, Math.floor(window.innerHeight*0.9));");
-                try { Thread.sleep(150); } catch (InterruptedException ignored) {}
+                try { Thread.sleep(90); } catch (InterruptedException ignored) {}
             }
             ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, 0);");
             try {
@@ -66,9 +65,9 @@ public class FundingRequestsPage {
     public void openFirstRequestReview() {
         // Pre-scan: scroll window and possible inner viewport to allow lazy content to render
         try {
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 4; i++) {
                 ((JavascriptExecutor) driver).executeScript("window.scrollBy(0, Math.floor(window.innerHeight*0.7));");
-                try { Thread.sleep(200); } catch (InterruptedException ignored) {}
+                try { Thread.sleep(120); } catch (InterruptedException ignored) {}
                 if (!driver.findElements(rowsSelector).isEmpty() || !driver.findElements(reviewButtonText).isEmpty()) break;
                 By viewport = By.cssSelector("[data-radix-scroll-area-viewport], .mantine-ScrollArea-viewport, .overflow-auto, .overflow-y-auto, .table-container, .scroll, .scrollbar");
                 List<WebElement> vps = driver.findElements(viewport);
@@ -84,8 +83,8 @@ public class FundingRequestsPage {
             List<WebElement> globalActions = driver.findElements(By.xpath("//a[normalize-space(.)='عرض' or normalize-space(.)='مراجعة' or contains(normalize-space(.),'Review')] | //button[normalize-space(.)='عرض' or normalize-space(.)='مراجعة' or contains(normalize-space(.),'Review')]"));
             if (!globalActions.isEmpty()) {
                 WebElement act = globalActions.stream().filter(WebElement::isDisplayed).findFirst().orElse(globalActions.get(0));
-                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", act);
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(act)).click();
+                scrollIntoViewCenter(act);
+                waitAndClick(act, 20);
                 try {
                     new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                             ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -98,7 +97,7 @@ public class FundingRequestsPage {
         // Try direct review button
         List<WebElement> reviews = driver.findElements(reviewButtonText);
         if (!reviews.isEmpty()) {
-            DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(reviews.get(0))).click();
+            waitAndClick(reviews.get(0), 20);
             try {
                 new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                         ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -112,12 +111,12 @@ public class FundingRequestsPage {
             List<WebElement> lastCellBtns = driver.findElements(firstRowLastCellButton);
             if (!lastCellBtns.isEmpty()) {
                 WebElement b = lastCellBtns.get(0);
-                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", b);
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(b)).click();
+                scrollIntoViewCenter(b);
+                waitAndClick(b, 20);
                 try { Thread.sleep(250); } catch (InterruptedException ignored) {}
                 List<WebElement> menuReview = driver.findElements(menuItemReview);
                 if (!menuReview.isEmpty()) {
-                    DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
+                    waitAndClick(menuReview.get(0), 20);
                     try {
                         new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                                 ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -129,7 +128,7 @@ public class FundingRequestsPage {
                 // Fallback: click first dropdown-item if text not matched
                 List<WebElement> anyDropdownItem = driver.findElements(By.xpath("(//button[@class='dropdown-item' or contains(@class,'dropdown-item')])[1]"));
                 if (!anyDropdownItem.isEmpty()) {
-                    DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(anyDropdownItem.get(0))).click();
+                    waitAndClick(anyDropdownItem.get(0), 20);
                     try {
                         new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                                 ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -152,17 +151,17 @@ public class FundingRequestsPage {
                     firstRow = heading.findElement(By.xpath("following::*[@role='rowgroup'][1]//*[@role='row'][1]"));
                 }
                 if (firstRow != null) {
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", firstRow);
+                    scrollIntoViewCenter(firstRow);
                     try { new org.openqa.selenium.interactions.Actions(driver).moveToElement(firstRow).perform(); } catch (Exception ignored) {}
                     List<WebElement> rowMenus = firstRow.findElements(By.xpath(".//*[self::button or self::a][.//*[name()='svg'] or contains(., '...') or contains(@aria-label,'actions') or contains(@aria-label,'إجراءات') or contains(@class,'menu') or contains(@class,'actions')]")).
                             stream().filter(e -> e.isDisplayed() && e.isEnabled()).toList();
                     if (!rowMenus.isEmpty()) {
                         WebElement rm = rowMenus.get(0);
-                        DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(rm)).click();
+                        waitAndClick(rm, 20);
                         try { Thread.sleep(250); } catch (InterruptedException ignored) {}
                         List<WebElement> menuReview = driver.findElements(menuItemReview);
                         if (!menuReview.isEmpty()) {
-                            DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
+                            waitAndClick(menuReview.get(0), 20);
                             try {
                                 new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                                         ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -173,7 +172,7 @@ public class FundingRequestsPage {
                         }
                         List<WebElement> anyDropdownItem = driver.findElements(By.xpath("(//button[@class='dropdown-item' or contains(@class,'dropdown-item')])[1]"));
                         if (!anyDropdownItem.isEmpty()) {
-                            DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(anyDropdownItem.get(0))).click();
+                            waitAndClick(anyDropdownItem.get(0), 20);
                             try {
                                 new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                                         ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -191,12 +190,12 @@ public class FundingRequestsPage {
                 .filter(e -> e.isDisplayed() && e.isEnabled())
                 .findFirst().orElse(null);
         if (btn != null) {
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", btn);
-            DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click();
+            scrollIntoViewCenter(btn);
+            waitAndClick(btn, 20);
             try { Thread.sleep(250); } catch (InterruptedException ignored) {}
             List<WebElement> menuReview = driver.findElements(menuItemReview);
             if (!menuReview.isEmpty()) {
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
                 try {
                     new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                             ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -207,7 +206,7 @@ public class FundingRequestsPage {
             }
             List<WebElement> anyDropdownItem = driver.findElements(By.xpath("(//button[@class='dropdown-item' or contains(@class,'dropdown-item')])[1]"));
             if (!anyDropdownItem.isEmpty()) {
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(anyDropdownItem.get(0))).click();
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(anyDropdownItem.get(0))).click();
                 try {
                     new WebDriverWait(driver, Duration.ofSeconds(10)).until(ExpectedConditions.or(
                             ExpectedConditions.presenceOfElementLocated(reviewDecisionSelect),
@@ -222,13 +221,13 @@ public class FundingRequestsPage {
                 .filter(e -> e.isDisplayed() && e.isEnabled())
                 .findFirst().orElse(null);
         if (btn != null) {
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", btn);
-            DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click();
+            scrollIntoViewCenter(btn);
+            waitAndClick(btn, 20);
             try { Thread.sleep(250); } catch (InterruptedException ignored) {}
             List<WebElement> menuReview = driver.findElements(menuItemReview);
             if (!menuReview.isEmpty()) {
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
-                DriverManager.getWait().until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
                 return;
             }
             return;
@@ -272,9 +271,9 @@ public class FundingRequestsPage {
             List<WebElement> links = driver.findElements(firstDetailsLink);
             if (!links.isEmpty()) {
                 WebElement link = links.get(0);
-                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", link);
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(link)).click();
-                DriverManager.getWait().until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
+                scrollIntoViewCenter(link);
+                waitAndClick(link, 20);
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
                 return;
             }
         } catch (Exception ignored) {}
@@ -282,36 +281,36 @@ public class FundingRequestsPage {
         List<WebElement> rows = driver.findElements(rowsSelector);
         if (!rows.isEmpty()) {
             WebElement first = rows.get(0);
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", first);
+            scrollIntoViewCenter(first);
             try { new org.openqa.selenium.interactions.Actions(driver).moveToElement(first).perform(); } catch (Exception ignored) {}
             try {
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(first)).click();
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(first)).click();
                 // small pause, then double click to open details if supported
                 try { Thread.sleep(200); } catch (InterruptedException ignored) {}
                 new org.openqa.selenium.interactions.Actions(driver).doubleClick(first).perform();
             } catch (Exception ignored) {}
             try {
-                DriverManager.getWait().until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
                 return;
             } catch (Exception ignored) {}
         } else {
             // Global fallback: search whole page
             List<WebElement> anyReviews = driver.findElements(menuItemReview);
             if (!anyReviews.isEmpty()) {
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(anyReviews.get(0))).click();
-                DriverManager.getWait().until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
+                waitAndClick(anyReviews.get(0), 20);
+                new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
                 return;
             }
             List<WebElement> anyMenus = driver.findElements(actionsMenuTrigger);
             if (!anyMenus.isEmpty()) {
                 WebElement m = anyMenus.get(0);
-                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", m);
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(m)).click();
+                scrollIntoViewCenter(m);
+                waitAndClick(m, 20);
                 try { Thread.sleep(250); } catch (InterruptedException ignored) {}
                 List<WebElement> menuReview = driver.findElements(menuItemReview);
                 if (!menuReview.isEmpty()) {
-                    DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(menuReview.get(0))).click();
-                    DriverManager.getWait().until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
+                    waitAndClick(menuReview.get(0), 20);
+                    new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.urlContains("/dashboard/funding-requests/"));
                     return;
                 }
             }
@@ -324,5 +323,11 @@ public class FundingRequestsPage {
             } catch (Exception ignored) {}
             throw new NoSuchElementException("No rows/actions/review found on funding requests page");
         }
+    }
+
+    private void waitAndClick(WebElement element, long timeoutSeconds) {
+        try {
+            waitUntilClickable(element, timeoutSeconds).click();
+        } catch (Exception ignored) {}
     }
 }

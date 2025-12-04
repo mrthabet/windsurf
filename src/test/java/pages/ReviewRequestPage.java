@@ -1,6 +1,6 @@
 package pages;
 
-import base.DriverManager;
+import base.BasePage;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -11,8 +11,8 @@ import io.qameta.allure.Allure;
 import java.util.List;
 import java.time.Duration;
 
-public class ReviewRequestPage {
-    private final WebDriver driver;
+public class ReviewRequestPage extends BasePage {
+    private final WebDriverWait wait;
 
     private final By decisionLabelAr = By.xpath("//*[contains(normalize-space(.),'القرار')]");
     private final By decisionSelect = By.cssSelector("select");
@@ -23,9 +23,9 @@ public class ReviewRequestPage {
     private final By dropdownOptionAccepted = By.xpath("//*[self::div or self::button or self::li][normalize-space(.)='مقبول' or contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept')]");
     private final By updateButton = By.xpath("//button[normalize-space(.)='تحديث' or contains(normalize-space(.),'Update') or contains(@class,'primary') or @type='submit']");
 
-    public ReviewRequestPage() {
-        this.driver = DriverManager.getDriver();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(60));
+    public ReviewRequestPage(WebDriver driver) {
+        super(driver);
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(30));
         try {
             wait.until(ExpectedConditions.or(
                     ExpectedConditions.urlContains("/dashboard/funding-requests/"),
@@ -66,7 +66,7 @@ public class ReviewRequestPage {
         List<WebElement> specificSelects = driver.findElements(decisionSelectSpecific);
         if (!specificSelects.isEmpty()) {
             WebElement sel = specificSelects.get(0);
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", sel);
+            scrollIntoViewCenter(sel);
             try {
                 Select s = new Select(sel);
                 try { s.selectByVisibleText("مقبول"); return; } catch (Exception ignored) {}
@@ -120,9 +120,9 @@ public class ReviewRequestPage {
         try {
             WebElement dd = driver.findElements(decisionCustomDropdown).stream().findFirst().orElse(null);
             if (dd != null) {
-                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", dd);
-                DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(dd)).click();
-                DriverManager.getWait().until(d -> !driver.findElements(dropdownOptionAccepted).isEmpty());
+                scrollIntoViewCenter(dd);
+                waitAndClick(dd, 20);
+                wait.until(d -> !driver.findElements(dropdownOptionAccepted).isEmpty());
                 List<WebElement> opts = driver.findElements(dropdownOptionAccepted);
                 if (!opts.isEmpty()) {
                     opts.get(0).click();
@@ -141,13 +141,13 @@ public class ReviewRequestPage {
             try {
                 String txt = r.getText();
                 if (txt != null && (txt.contains("مقبول") || txt.toLowerCase().contains("accept"))) {
-                    DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(r)).click();
+                    new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(r)).click();
                     return;
                 }
                 // if it's an input radio without text, click the first
                 String tag = r.getTagName().toLowerCase();
                 if ("input".equals(tag)) {
-                    DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(r)).click();
+                    new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(r)).click();
                     return;
                 }
             } catch (Exception ignored) {}
@@ -180,9 +180,9 @@ public class ReviewRequestPage {
     private void forceRevealDecisionSection() {
         try {
             // Try scrolling window multiple steps
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 4; i++) {
                 ((JavascriptExecutor) driver).executeScript("window.scrollBy(0, Math.floor(window.innerHeight*0.8));");
-                try { Thread.sleep(120); } catch (InterruptedException ignored) {}
+                try { Thread.sleep(80); } catch (InterruptedException ignored) {}
                 if (!driver.findElements(decisionSelectSpecific).isEmpty() || !driver.findElements(updateButton).isEmpty()) {
                     break;
                 }
@@ -191,7 +191,7 @@ public class ReviewRequestPage {
             try {
                 WebElement lbl = driver.findElements(decisionLabelAr).stream().findFirst().orElse(null);
                 if (lbl != null) {
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", lbl);
+                    scrollIntoViewCenter(lbl);
                 }
             } catch (Exception ignored) {}
             // Scroll common inner viewports if exist
@@ -289,14 +289,14 @@ public class ReviewRequestPage {
         List<WebElement> btns = driver.findElements(updateButton);
         if (!btns.isEmpty()) {
             WebElement btn = btns.get(0);
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", btn);
+            scrollIntoViewCenter(btn);
             try {
                 byte[] png = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
                 Allure.addAttachment("before-update-click", new java.io.ByteArrayInputStream(png));
                 Thread.sleep(300);
             } catch (Exception ignored) {}
             boolean clicked = false;
-            try { DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click(); clicked = true; } catch (Exception ignored) {}
+            try { new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(btn)).click(); clicked = true; } catch (Exception ignored) {}
             if (!clicked) {
                 try { ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn); clicked = true; } catch (Exception ignored) {}
             }
@@ -320,7 +320,7 @@ public class ReviewRequestPage {
         List<WebElement> any = driver.findElements(updateAny);
         if (!any.isEmpty()) {
             WebElement el = any.stream().filter(WebElement::isDisplayed).findFirst().orElse(any.get(0));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", el);
+            scrollIntoViewCenter(el);
             // Try closest clickable ancestor
             try {
                 ((JavascriptExecutor) driver).executeScript(
@@ -335,8 +335,8 @@ public class ReviewRequestPage {
         btns = driver.findElements(updateByClass);
         if (!btns.isEmpty()) {
             WebElement btn = btns.get(0);
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'});", btn);
-            try { DriverManager.getWait().until(ExpectedConditions.elementToBeClickable(btn)).click(); return; } catch (Exception ignored) {}
+            scrollIntoViewCenter(btn);
+            try { new WebDriverWait(driver, Duration.ofSeconds(20)).until(ExpectedConditions.elementToBeClickable(btn)).click(); return; } catch (Exception ignored) {}
             try { ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn); return; } catch (Exception ignored) {}
         }
         // By type submit
@@ -349,9 +349,9 @@ public class ReviewRequestPage {
         // Final JS-based fallback: find by text or primary class anywhere in the document
         try {
             Object found = ((JavascriptExecutor) driver).executeScript(
-                    "var list = Array.from(document.querySelectorAll('button.primary, button, a, [role=button]'));\n" +
-                    "var el = list.find(e => (e.textContent||'').trim().includes('تحديث') || (e.textContent||'').toLowerCase().includes('update'));\n" +
-                    "if(!el){el = document.querySelector('button.primary');}\n" +
+                    "var list = Array.from(document.querySelectorAll('button.primary, button, a, [role=button]'));;\n" +
+                    "var el = list.find(e => (e.textContent||'').trim().includes('تحديث') || (e.textContent||'').toLowerCase().includes('update'));;\n" +
+                    "if(!el){el = document.querySelector('button.primary');};;\n" +
                     "if(el){ el.scrollIntoView({behavior:'instant', block:'center'}); el.click(); return true;} return false;"
             );
             if (Boolean.TRUE.equals(found)) return;
@@ -390,6 +390,12 @@ public class ReviewRequestPage {
             ((JavascriptExecutor) driver).executeScript(
                     "var s=document.querySelector(\"select.status-select, select.status-need-change, select[name='status'], select#status\"); if(s){ s.value='3'; s.dispatchEvent(new Event('input',{bubbles:true})); s.dispatchEvent(new Event('change',{bubbles:true})); }"
             );
+        } catch (Exception ignored) {}
+    }
+
+    private void waitAndClick(WebElement element, long timeoutSeconds) {
+        try {
+            waitUntilClickable(element, timeoutSeconds).click();
         } catch (Exception ignored) {}
     }
 }
